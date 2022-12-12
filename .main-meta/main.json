@@ -3,14 +3,14 @@
     "category": "com.microchip.ide.project",
     "content": {
         "metaDataVersion": "1.3.0",
-        "name": "com.microchip.mcu8.studio.project.avr64ea48-nvm-read-while-write-studio",
-        "version": " ",
-        "displayName": "",
+        "name": "com.microchip.mcu8.mplabx.project.avr64ea48-nvm-read-while-write-studio",
+        "version": "1.0.0",
+        "displayName": "Servicing peripheral interrupts while writing FLASH",
         "projectName": "avr64ea48-nvm-read-while-write-studio",
-        "shortDescription": "This is a Microchip Studio example demonstrating the configuration of and use of  read while write  with an AVR64EA48 device.",
+        "shortDescription": "This is a Microchip Studio example demonstrating the configuration of and use of read while write with an AVR64EA48 device.",
         "ide": {
             "name": "STUDIO",
-            "semverRange": ">=7.0.132"
+            "semverRange": ">=7.0.2594"
         },
         "compiler": [
             {
@@ -19,12 +19,12 @@
             }
         ],
         "dfp": {
-            "name": "",
-            "semverRange": ""
+            "name": "AVR-Ex_DFP",
+            "semverRange": "^2.1.48"
         },
         "configurator": {
-            "name": "",
-            "semverRange": ""
+            "name": "N/A",
+            "semverRange": " "
         },
         "device": {
             "metaDataVersion": "1.0.0",
@@ -36,8 +36,8 @@
                 "versionRange": "*"
             }
         },
-        "author": "Martin Thomaz",
-        "peripherals": [],
+        "author": "microchip",
+        "peripherals": ["NVMCTRL", "INT", "TCB" ],
         "keywords": [],
         "additionalData": {
             "longDescription": {
