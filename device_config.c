@@ -33,8 +33,7 @@ FUSES =
 	.BODCFG = FUSE_BODCFG_DEFAULT,
 	.OSCCFG = FUSE_OSCCFG_DEFAULT,
 	
-	.BOOTSIZE = 4,	// FLASHSTART to 1k ((BOOTSIZE*256)-1)
-	.CODESIZE = 0,	// BOOTEND to FLASHEND
-	//.CODESIZE = 128,	// BOOTEND to 32k + 1k
-	//APP DATA			// 33k -> 64k		
+	.BOOTSIZE = 128,    // FLASHSTART to 32k ((BOOTSIZE*256)-1)
+	.CODESIZE = 1,      // APPCODE Section - Not available
+                        //APP DATA from 32k to 64K
 };
