@@ -63,7 +63,7 @@ int main(void)
 			ProgramingFlash();
 			// We cannot keep programming the flash forever, so stop after some pages
 			flashReadPointer_addr = (uint16_t) flashWritePointer ;
-			RWW_DATA_last_addr = ((uint16_t) &rww_array + RWW_DATA_SIZE);
+			RWW_DATA_last_addr = ((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START + RWW_DATA_SIZE);
 			if (flashReadPointer_addr > RWW_DATA_last_addr )
 			//if ((uint16_t) flashWritePointer > ((uint16_t) &rww_array + RWW_DATA_SIZE))
 			{
@@ -100,11 +100,11 @@ void SystemInitialize(void)
 	// Enable global interrupts
 	sei();
 
-	// Set the mapped program space to the 2nd section (32k - 64k) (rww_data section)
-	_PROTECTED_WRITE(NVMCTRL.CTRLB, NVMCTRL_FLMAP_SECTION1_gc);
+	// Set the mapped program space to the 1st section (0k - 32k) 
+	_PROTECTED_WRITE(NVMCTRL.CTRLB, NVMCTRL_FLMAP_SECTION0_gc);
 
 	// Adding the mapped progmem offset to correct for the unified data space
-	flashWritePointer = (uint8_t *) ((uint16_t) flashWritePointer | MAPPED_PROGMEM_START);
+	flashWritePointer = (uint8_t *) (((uint16_t) flashWritePointer & 0x7FFF) + MAPPED_PROGMEM_START);
 	flashReadPointer = (uint8_t *) ((uint16_t) flashReadPointer | MAPPED_PROGMEM_START);
 }
 
