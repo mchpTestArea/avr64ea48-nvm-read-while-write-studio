@@ -88,7 +88,7 @@ int main(void)
 void SystemInitialize(void)
 {
     // Enable prescaler
-	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PEN_bm);
+	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, (CLKCTRL_PDIV_DIV6_gc | CLKCTRL_PEN_bm));
 
 	// Set all the status pins as outputs
 	SCOPE_PORT.DIRSET = SCOPE_gm;

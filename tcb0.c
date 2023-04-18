@@ -28,7 +28,8 @@
 void Tcb0Init(void)
 {
     // TCB with periodic interrupt
-	TCB0.CTRLB = TCB_CNTMODE_INT_gc;
+	//TCB0.CTRLB = TCB_CNTMODE_INT_gc;
+    TCB0.CTRLB = 0;
 	TCB0.INTCTRL = TCB_CAPT_bm;
 	TCB0.CCMP = TOP_VALUE;
 	TCB0.CTRLA = TCB_CLKSEL_DIV1_gc | TCB_ENABLE_bm;

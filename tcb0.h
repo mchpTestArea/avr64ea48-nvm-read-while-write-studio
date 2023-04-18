@@ -23,7 +23,7 @@
 #ifndef TCB0_H_
 #define TCB0_H_
 
-#define TOP_VALUE 1025  // Top value for the CMP register when in periodic interrupt mode
+#define TOP_VALUE 520  // Top value for the CMP register when in periodic interrupt mode
 
 void Tcb0Init(void);
 
