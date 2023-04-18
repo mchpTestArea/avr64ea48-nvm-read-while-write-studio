@@ -26,7 +26,7 @@
 #define MAIN_H_
 
 #define BUFFER_SIZE 256	// Because uint8 index will wrap around perfectly
-#define RWW_DATA_SIZE 0x1000
+#define RWW_DATA_SIZE 256
 
 // Status pins used for measurements
 #define SCOPE_PORT PORTA

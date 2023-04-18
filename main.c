@@ -55,7 +55,9 @@ int main(void)
     SystemInitialize();
 	
 	FillBuffer();
-    	
+
+    RWW_DATA_last_addr = ((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START + RWW_DATA_SIZE);
+
     while (1) 
     {
 		if (!(NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm))
@@ -63,8 +65,8 @@ int main(void)
 			ProgramingFlash();
 			// We cannot keep programming the flash forever, so stop after some pages
 			flashReadPointer_addr = (uint16_t) flashWritePointer ;
-			RWW_DATA_last_addr = ((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START + RWW_DATA_SIZE);
-			if (flashReadPointer_addr > RWW_DATA_last_addr )
+			
+			if (flashReadPointer_addr >= RWW_DATA_last_addr )
 			//if ((uint16_t) flashWritePointer > ((uint16_t) &rww_array + RWW_DATA_SIZE))
 			{
 				RWW_DATA_last_addr++;
