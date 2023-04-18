@@ -46,12 +46,25 @@ uint8_t buffer[BUFFER_SIZE] = {0};
 volatile uint8_t writeIndex = 0;
 volatile uint8_t readIndex = 0;
 
+typedef enum DATA_FLASH_enum
+{
+    IDLE = 0,
+    INIT_NRWW,
+    ERASE_NRWW,
+    WRITE_NRWW,
+    INIT_RWW,
+    ERASE_RWW,
+    WRITE_RWW,
+} DATA_FLASH_t;
+
 void SystemInitialize(void);
 void ProgramingFlash(void);
 void ReadWhileWriting(void);
 
 int main(void)
 {
+    DATA_FLASH_t eraseWriteState = ERASE_RWW;
+    
     SystemInitialize();
 	
 	FillBuffer();
@@ -60,28 +73,32 @@ int main(void)
 
     while (1) 
     {
-		if (!(NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm))
-		{
-			ProgramingFlash();
-			// We cannot keep programming the flash forever, so stop after some pages
-			flashReadPointer_addr = (uint16_t) flashWritePointer ;
-			
-			if (flashReadPointer_addr >= RWW_DATA_last_addr )
-			//if ((uint16_t) flashWritePointer > ((uint16_t) &rww_array + RWW_DATA_SIZE))
-			{
-				RWW_DATA_last_addr++;
-				return 0;
-			}
-		}
+        switch (eraseWriteState)
+        {
+        case ERASE_RWW:
+            if (!(NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm))
+                {
+                    ProgramingFlash();
+                    // We cannot keep programming the flash forever, so stop after some pages
+                    flashReadPointer_addr = (uint16_t) flashWritePointer ;
 
-		// This code if defined in, demonstrated the CPU halting
-		#ifdef READ_MAPPED_DATA_WHILE_WRITING
-		else
-		{
-		    ReadWhileWriting();
-		}
-		#endif // READ_MAPPED_DATA_WHILE_WRITING
-	    	
+                    if (flashReadPointer_addr >= RWW_DATA_last_addr )
+                    //if ((uint16_t) flashWritePointer > ((uint16_t) &rww_array + RWW_DATA_SIZE))
+                    {
+                        RWW_DATA_last_addr++;
+                        eraseWriteState = IDLE;;
+                    }
+                }
+            break;
+        case IDLE:
+                
+            break;
+        default:
+            break;
+        }
+        
+
+
     }
 }
 
