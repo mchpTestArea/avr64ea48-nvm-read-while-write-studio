@@ -32,11 +32,11 @@
 #define SCOPE_PORT PORTA
 #define SCOPE_ISR_bm PIN2_bm
 #define SCOPE_BUFFER_bm PIN3_bm
-#define SCOPE_FLPERW_bm PIN4_bm
+#define SCOPE_FLPER_bm PIN4_bm
 #define SCOPE_READ_bm PIN5_bm
 #define SCOPE_OVERFLOW_bm PIN6_bm
 
-#define SCOPE_gm (SCOPE_BUFFER_bm | SCOPE_ISR_bm | SCOPE_FLPERW_bm | SCOPE_OVERFLOW_bm | SCOPE_READ_bm)
+#define SCOPE_gm (SCOPE_BUFFER_bm | SCOPE_ISR_bm | SCOPE_FLPER_bm | SCOPE_OVERFLOW_bm | SCOPE_READ_bm)
 
 void FillBuffer(void);
 void DebounceSW0(void);

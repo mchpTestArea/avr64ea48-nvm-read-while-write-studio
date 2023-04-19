@@ -88,13 +88,16 @@ int main(void)
 {
     DATA_FLASH_t eraseWriteState = IDLE;
     
+    // Pointer to rww flash program memory mapped in data space
+    uint8_t *rwwFlashPointer;
+    
     static BUTTON_t prev_buttonState = UNKNOWN;
     
     SystemInitialize();
 	
 	FillBuffer();
 
-    RWW_DATA_last_addr = ((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START + RWW_DATA_SIZE);
+    
 
     while (1) 
     {
@@ -103,24 +106,75 @@ int main(void)
         case INIT_RWW:
             // Start TCB0  that will be filling up the data buffer
             TCB0.CTRLA |= TCB_ENABLE_bm; 
+            
+             // Set rwwFlashPointer address to RWW data space
+             rwwFlashPointer = (uint8_t *)((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START);
+            
             eraseWriteState = ERASE_RWW;
             break;
         case ERASE_RWW:
-            if (!(NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm))
+            RWW_DATA_last_addr = ((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START + RWW_DATA_SIZE);
+            
+            while ((uint16_t)rwwFlashPointer < RWW_DATA_last_addr)
+            {
+                SCOPE_PORT.OUTSET = SCOPE_FLPER_bm;
+                //FLASH_PageErase((flash_address_t)rwwFlashPointer);
+                
+                _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_NOCMD_gc);
+                
+                // Perform a dummy write to this address to update the address register in NVMCTL
+                *rwwFlashPointer = 0;
+                
+                _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_FLPER_gc);
+                
+                while (NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm)
                 {
-                    ProgramingFlash();
-                    // We cannot keep programming the flash forever, so stop after some pages
-                    flashReadPointer_addr = (uint16_t) flashWritePointer ;
-
-                    if (flashReadPointer_addr >= RWW_DATA_last_addr )
-                    //if ((uint16_t) flashWritePointer > ((uint16_t) &rww_array + RWW_DATA_SIZE))
-                    {
-                        RWW_DATA_last_addr++;
-                        eraseWriteState = IDLE;
-
-                        TCB0.CTRLA &= ~TCB_ENABLE_bm; /* Stop Timer */
-                    }
+                    ; // wait for flash erase to complete
                 }
+                SCOPE_PORT.OUTCLR = SCOPE_FLPER_bm;
+                rwwFlashPointer = rwwFlashPointer + PROGMEM_PAGE_SIZE;
+            }
+            
+            // Set rwwFlashPointer address to RWW data space
+             rwwFlashPointer = (uint8_t *)((((uint16_t) &rww_array) & 0x7FFF) + MAPPED_PROGMEM_START);
+            
+            // set state machine to Write to the RWW data space
+            eraseWriteState = WRITE_RWW;
+            
+            break;
+        case WRITE_RWW:
+             if ((uint16_t)rwwFlashPointer < RWW_DATA_last_addr)
+             {
+                 // Check if we have a full page to fill
+                 if ((writeIndex - readIndex) >= PROGMEM_PAGE_SIZE)
+                 {
+                     // Fill "page" buffer
+                     SCOPE_PORT.OUTSET = SCOPE_BUFFER_bm;
+                     for (uint8_t i = 0; i < PROGMEM_PAGE_SIZE; i++)
+                     {
+                         *rwwFlashPointer++ = buffer[readIndex++];
+                     }
+                     SCOPE_PORT.OUTCLR = SCOPE_BUFFER_bm;
+
+                     SCOPE_PORT.OUTSET = SCOPE_FLPER_bm;
+                     // Write the flash page
+                     _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_FLPW_gc);
+                     while (NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm)
+                     {
+                        ; // wait flash write page operation to complete
+                     }                        
+                     SCOPE_PORT.OUTCLR = SCOPE_FLPER_bm;
+                 }
+             }
+             else
+             {
+                 eraseWriteState = IDLE;
+                 TCB0.CTRLA &= ~TCB_ENABLE_bm; /* Stop Timer */
+
+                 // reset buffer
+                 writeIndex = readIndex;
+             }
+            
             break;
         case IDLE:
         {
@@ -185,32 +239,6 @@ void SystemInitialize(void)
 	// Adding the mapped progmem offset to correct for the unified data space
 	flashWritePointer = (uint8_t *) (((uint16_t) flashWritePointer & 0x7FFF) + MAPPED_PROGMEM_START);
 	flashReadPointer = (uint8_t *) ((uint16_t) flashReadPointer | MAPPED_PROGMEM_START);
-}
-
-// This function fills a page buffer, and then writes the page buffer to Flash
-void NRWW_PROG_SECTION ProgramingFlash(void)
-{
-	// Erase write done (or we do not have a full page to fill)
-	SCOPE_PORT.OUTCLR = SCOPE_FLPERW_bm;
-
-	// Check if we have a full page to fill
-	if ((writeIndex - readIndex) >= PROGMEM_PAGE_SIZE)
-	{
-	    // Clear NVM Command
-		_PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_NOCMD_gc);
-
-		// Fill page buffer
-		SCOPE_PORT.OUTSET = SCOPE_BUFFER_bm;
-		for (uint8_t i = 0; i < PROGMEM_PAGE_SIZE; i++)
-		{
-		    *flashWritePointer++ = buffer[readIndex++];
-		}
-		SCOPE_PORT.OUTCLR = SCOPE_BUFFER_bm;
-
-		// Send the page erase write NVM command
-		SCOPE_PORT.OUTSET = SCOPE_FLPERW_bm;
-		_PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_FLPERW_gc);
-	}
 }
 
 // This function reads from the mapped flash while writing
