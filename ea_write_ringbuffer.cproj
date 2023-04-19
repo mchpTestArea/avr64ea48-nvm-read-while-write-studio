@@ -134,8 +134,9 @@
   </avrgcc.linker.libraries.Libraries>
   <avrgcc.linker.memorysettings.Flash>
     <ListValues>
-      <Value>.rww_data=0x1000</Value>
       <Value>.nrww_program=0x300</Value>
+      <Value>.nrww_data = 0x0F80</Value>
+      <Value>.rww_data=0x1000</Value>
     </ListValues>
   </avrgcc.linker.memorysettings.Flash>
   <avrgcc.assembler.general.IncludePaths>
