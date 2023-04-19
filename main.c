@@ -24,6 +24,7 @@
 #include <avr/interrupt.h>
 #include "main.h"
 #include "tcb0.h"
+#include "tcb1.h"
 
 // the .rww_data section is at address 0x8000 (word address 0x4000) in this example
 // this is done to uncomplicate the use of the unified data space
@@ -57,13 +58,37 @@ typedef enum DATA_FLASH_enum
     WRITE_RWW,
 } DATA_FLASH_t;
 
+typedef enum BUTTON_enum
+{
+    UNKNOWN = 0,
+    PRESS,
+    DEPRESS
+} BUTTON_t;
+
+BUTTON_t buttonState = UNKNOWN; // Cleaned-up version of the SW0 button input signal
+
+// Details of the algorithm can be found here:
+// https://www.kennethkuhn.com/electronics/debounce.c
+
+// TCB0 is set to interrupt with the SAMPLE_FREQUENCY rate.
+// Within the interrupt SW0 logic level is sampled.
+// A local variable is incremented or decremented according based on the SW0 state.
+// The SW0 signal must be in a logical state (0 or 1) for the specified
+// DEBOUNCE_TIME in order for the output to change to that state.
+// DEBOUNCE_TIME is in seconds and SAMPLE_FREQUENCY is in Hertz
+#define DEBOUNCE_TIME		0.1
+#define SAMPLE_FREQUENCY	333
+#define MAXIMUM			(DEBOUNCE_TIME * SAMPLE_FREQUENCY)
+
 void SystemInitialize(void);
 void ProgramingFlash(void);
 void ReadWhileWriting(void);
 
 int main(void)
 {
-    DATA_FLASH_t eraseWriteState = ERASE_RWW;
+    DATA_FLASH_t eraseWriteState = IDLE;
+    
+    static BUTTON_t prev_buttonState = UNKNOWN;
     
     SystemInitialize();
 	
@@ -75,6 +100,11 @@ int main(void)
     {
         switch (eraseWriteState)
         {
+        case INIT_RWW:
+            // Start TCB0  that will be filling up the data buffer
+            TCB0.CTRLA |= TCB_ENABLE_bm; 
+            eraseWriteState = ERASE_RWW;
+            break;
         case ERASE_RWW:
             if (!(NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm))
                 {
@@ -86,19 +116,42 @@ int main(void)
                     //if ((uint16_t) flashWritePointer > ((uint16_t) &rww_array + RWW_DATA_SIZE))
                     {
                         RWW_DATA_last_addr++;
-                        eraseWriteState = IDLE;;
+                        eraseWriteState = IDLE;
+
+                        TCB0.CTRLA &= ~TCB_ENABLE_bm; /* Stop Timer */
                     }
                 }
             break;
         case IDLE:
-                
+        {
+            if (PRESS == buttonState)
+            {
+                PORTB_OUTCLR = 0x8;
+            }
+            else if (DEPRESS == buttonState)
+            {
+                PORTB_OUTSET = 0x8;
+            }
+            else
+            {
+                ; // Do nothing
+            }
+
+            if (prev_buttonState != buttonState)
+            {
+                if (PRESS == buttonState)
+                {
+                    // start a new ERASE/Write cycle
+                    eraseWriteState = INIT_RWW;
+                }
+
+                prev_buttonState = buttonState;
+            }
             break;
+        }            
         default:
             break;
         }
-        
-
-
     }
 }
 
@@ -107,11 +160,18 @@ void SystemInitialize(void)
     // Enable prescaler
 	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, (CLKCTRL_PDIV_DIV6_gc | CLKCTRL_PEN_bm));
 
-	// Set all the status pins as outputs
-	SCOPE_PORT.DIRSET = SCOPE_gm;
+    // Set all the status pins as outputs
+    SCOPE_PORT.DIRSET = SCOPE_gm;
+
+    PORTB.DIRSET = 0x8;
+
+    // PB2 input
+    PORTB.DIRSET &= (~PIN2_bm);
+    PORTB.PIN2CTRL = 0x8;
 
 	// Initialize TCB with periodic interrupt
 	Tcb0Init();
+    Tcb1Init();
 
 	// Move the interrupt vector to the boot section (NRWW section)
 	_PROTECTED_WRITE(CPUINT.CTRLA, CPUINT_IVSEL_bm);
@@ -176,8 +236,39 @@ void FillBuffer(void)
 	{
 	    // Overflow
 		SCOPE_PORT.OUTTGL = SCOPE_OVERFLOW_bm;
-		while (1)
-		{
-		}
 	}
+}
+
+void DebounceSW0(void)
+{
+    static volatile uint16_t debounceCounter = MAXIMUM / 2; // Will range from 0 to the specified MAXIMUM
+
+    if (VPORTB.IN & PIN2_bm)
+    {
+        if (MAXIMUM > debounceCounter)
+        {
+            debounceCounter++;
+        }
+    }
+    else
+    {
+        if (0 < debounceCounter)
+        {
+            debounceCounter--;
+        }
+    }
+
+    if (0 == debounceCounter)
+    {
+        buttonState = PRESS;
+    }
+    else if (MAXIMUM <= debounceCounter)
+    {
+        buttonState = DEPRESS;
+        debounceCounter = MAXIMUM;
+    }
+    else
+    {
+        buttonState = UNKNOWN; // Do nothing
+    }
 }

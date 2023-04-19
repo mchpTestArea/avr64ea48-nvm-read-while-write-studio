@@ -22,23 +22,22 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include "tcb0.h"
+#include "tcb1.h"
 #include "main.h"
 
-void Tcb0Init(void)
+void Tcb1Init(void)
 {
     // TCB with periodic interrupt
-	//TCB0.CTRLB = TCB_CNTMODE_INT_gc;
-    TCB0.CTRLB = 0;
-	TCB0.INTCTRL = TCB_CAPT_bm;
-	TCB0.CCMP = TOP_VALUE;
-	TCB0.CTRLA = TCB_CLKSEL_DIV1_gc;
+    TCB1.CTRLB = 0;
+	TCB1.INTCTRL = TCB_CAPT_bm;
+	TCB1.CCMP = TCB1_TOP_VALUE;
+	TCB1.CTRLA = TCB_CLKSEL_DIV1_gc | TCB_ENABLE_bm;
 }
 
 // Triggered by periodic interrupt in TCB0
-ISR(TCB0_INT_vect)
+ISR(TCB1_INT_vect)
 {
-    FillBuffer();
+    DebounceSW0();
 	// Clear intflag
-	TCB0.INTFLAGS = TCB_CAPT_bm;
+	TCB1.INTFLAGS = TCB_CAPT_bm;
 }

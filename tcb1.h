@@ -11,7 +11,7 @@
  *  APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED WARRANTIES OF
  *  NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE.
  *  
- *  IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,
+ *  IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT, SPECIAL, PUNITIVE,|
  *  INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE OF ANY KIND
  *  WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF MICROCHIP HAS
  *  BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE FORESEEABLE. TO THE
@@ -20,25 +20,11 @@
  *  DIRECTLY TO MICROCHIP FOR THIS SOFTWARE.
  */
 
-#include <avr/io.h>
-#include <avr/interrupt.h>
-#include "tcb0.h"
-#include "main.h"
+#ifndef TCB1_H_
+#define TCB1_H_
 
-void Tcb0Init(void)
-{
-    // TCB with periodic interrupt
-	//TCB0.CTRLB = TCB_CNTMODE_INT_gc;
-    TCB0.CTRLB = 0;
-	TCB0.INTCTRL = TCB_CAPT_bm;
-	TCB0.CCMP = TOP_VALUE;
-	TCB0.CTRLA = TCB_CLKSEL_DIV1_gc;
-}
+#define TCB1_TOP_VALUE 10000  // Top value for the CMP register when in periodic interrupt mode
 
-// Triggered by periodic interrupt in TCB0
-ISR(TCB0_INT_vect)
-{
-    FillBuffer();
-	// Clear intflag
-	TCB0.INTFLAGS = TCB_CAPT_bm;
-}
+void Tcb1Init(void);
+
+#endif /* TCB1_H_ */

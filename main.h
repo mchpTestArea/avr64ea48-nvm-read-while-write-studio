@@ -39,5 +39,6 @@
 #define SCOPE_gm (SCOPE_BUFFER_bm | SCOPE_ISR_bm | SCOPE_FLPERW_bm | SCOPE_OVERFLOW_bm | SCOPE_READ_bm)
 
 void FillBuffer(void);
+void DebounceSW0(void);
 
 #endif /* MAIN_H_ */
