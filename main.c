@@ -49,6 +49,7 @@ volatile uint16_t NRWW_DATA_last_addr = 0x00;
 uint8_t buffer[BUFFER_SIZE] = {0};
 volatile uint8_t writeIndex = 0;
 volatile uint8_t readIndex = 0;
+static volatile uint32_t data = 0;
 
 typedef enum DATA_FLASH_enum
 {
@@ -99,8 +100,6 @@ int main(void)
     static BUTTON_t prev_buttonState = UNKNOWN;
     
     SystemInitialize();
-
-    FillBuffer();
 
     while (1) 
     {
@@ -301,27 +300,30 @@ void SystemInitialize(void)
     PORTB.DIRSET &= (~PIN2_bm);
     PORTB.PIN2CTRL = 0x8;
 
-	// Initialize TCB with periodic interrupt
-	Tcb0Init();
+    // Initialize TCB with periodic interrupt
+    Tcb0Init();
     Tcb1Init();
 
-	// Move the interrupt vector to the boot section (NRWW section)
-	_PROTECTED_WRITE(CPUINT.CTRLA, CPUINT_IVSEL_bm);
-	
-	// Enable global interrupts
-	sei();
+    // Move the interrupt vector to the boot section (NRWW section)
+    _PROTECTED_WRITE(CPUINT.CTRLA, CPUINT_IVSEL_bm);
 
-	// Set the mapped program space to the 1st section (0k - 32k) 
-	_PROTECTED_WRITE(NVMCTRL.CTRLB, NVMCTRL_FLMAP_SECTION0_gc);
+    // Enable global interrupts
+    sei();
 
-	// Adding the mapped progmem offset to correct for the unified data space
-	flashWritePointer = (uint8_t *) (((uint16_t) flashWritePointer & 0x7FFF) + MAPPED_PROGMEM_START);
+    // Set the mapped program space to the 1st section (0k - 32k) 
+    _PROTECTED_WRITE(NVMCTRL.CTRLB, NVMCTRL_FLMAP_SECTION0_gc);
+
+    // Adding the mapped progmem offset to correct for the unified data space
+    flashWritePointer = (uint8_t *) (((uint16_t) flashWritePointer & 0x7FFF) + MAPPED_PROGMEM_START);
+
+    // Initialize data value with the last value being read from Flash.
+    data = (*(uint16_t *)(MAPPED_PROGMEM_START + (((uint16_t)(& rww_array[254])) & 0x7FFF)));
+    data = data << 2;
+
 }
 
 void FillBuffer(void)
 {
-    static volatile uint32_t data = 0;
-
     // Fill the buffer with some data
     SCOPE_PORT.OUTTGL = SCOPE_ISR_bm;
     buffer[writeIndex++] = (data >> 2);
@@ -337,7 +339,7 @@ void FillBuffer(void)
 
 void DebounceSW0(void)
 {
-    static volatile uint16_t debounceCounter = MAXIMUM / 2; // Will range from 0 to the specified MAXIMUM
+    static volatile uint16_t debounceCounter = 0; // Will range from 0 to the specified MAXIMUM
 
     if (VPORTB.IN & PIN2_bm)
     {
