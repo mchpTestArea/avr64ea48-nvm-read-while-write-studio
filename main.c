@@ -109,7 +109,7 @@ int main(void)
             // Start TCB0  that will be filling up the data buffer
             TCB0.CTRLA |= TCB_ENABLE_bm;
 
-            // Set rwwFlashPointer address to RWW data space
+            // Set rwwFlashPointer address to NRWW data space
             nrwwFlashPointer = (uint8_t *)((((uint16_t) &nrww_array) & 0x7FFF) + MAPPED_PROGMEM_START);
 
             eraseWriteState = ERASE_NRWW;
