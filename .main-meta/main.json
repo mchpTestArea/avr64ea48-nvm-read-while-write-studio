@@ -37,8 +37,8 @@
             }
         },
         "author": "microchip",
-        "peripherals": ["NVMCTRL", "INT", "RWW", "TCB" ],
-        "keywords": [],
+        "peripherals": ["NVMCTRL", "INT", "TCB" ],
+        "keywords": ["RWW"],
         "additionalData": {
             "longDescription": {
                 "metaDataVersion": "1.0.0",
