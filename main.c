@@ -74,7 +74,7 @@ BUTTON_t buttonState = UNKNOWN; // Cleaned-up version of the SW0 button input si
 // Details of the algorithm can be found here:
 // https://www.kennethkuhn.com/electronics/debounce.c
 
-// TCB0 is set to interrupt with the SAMPLE_FREQUENCY rate.
+// TCB1 is set to interrupt with the SAMPLE_FREQUENCY rate.
 // Within the interrupt SW0 logic level is sampled.
 // A local variable is incremented or decremented according based on the SW0 state.
 // The SW0 signal must be in a logical state (0 or 1) for the specified
@@ -288,7 +288,7 @@ int main(void)
 void SystemInitialize(void)
 {
     // Enable prescaler
-	_PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, (CLKCTRL_PDIV_DIV6_gc | CLKCTRL_PEN_bm));
+    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, (CLKCTRL_PDIV_DIV6_gc | CLKCTRL_PEN_bm));
 
     // Set all the status pins as outputs
     SCOPE_PORT.DIRSET = SCOPE_gm;
@@ -319,10 +319,9 @@ void SystemInitialize(void)
     // Initialize data value with the last value being read from Flash.
     data = (*(uint16_t *)(MAPPED_PROGMEM_START + (((uint16_t)(& rww_array[254])) & 0x7FFF)));
     data = data << 2;
-
 }
 
-void FillBuffer(void)
+void NRWW_PROG_SECTION FillBuffer(void)
 {
     // Fill the buffer with some data
     SCOPE_PORT.OUTTGL = SCOPE_ISR_bm;

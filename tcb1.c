@@ -29,15 +29,15 @@ void Tcb1Init(void)
 {
     // TCB with periodic interrupt
     TCB1.CTRLB = 0;
-	TCB1.INTCTRL = TCB_CAPT_bm;
-	TCB1.CCMP = TCB1_TOP_VALUE;
-	TCB1.CTRLA = TCB_CLKSEL_DIV1_gc | TCB_ENABLE_bm;
+    TCB1.INTCTRL = TCB_CAPT_bm;
+    TCB1.CCMP = TCB1_TOP_VALUE;
+    TCB1.CTRLA = TCB_CLKSEL_DIV1_gc | TCB_ENABLE_bm;
 }
 
 // Triggered by periodic interrupt in TCB0
 ISR(TCB1_INT_vect)
 {
     DebounceSW0();
-	// Clear intflag
-	TCB1.INTFLAGS = TCB_CAPT_bm;
+    // Clear intflag
+    TCB1.INTFLAGS = TCB_CAPT_bm;
 }
