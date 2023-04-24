@@ -25,6 +25,7 @@
 #include "main.h"
 #include "tcb0.h"
 #include "tcb1.h"
+#include "flash_access.h"
 
 // the .rww_data section is at address 0x2000 (word address 0x1000)
 #define RWW_DATA_SECTION __attribute__((used, section(".rww_data")))
@@ -60,6 +61,7 @@ typedef enum DATA_FLASH_enum
     INIT_RWW,
     ERASE_RWW,
     WRITE_RWW,
+    ASM_RWW_ERASE
 } DATA_FLASH_t;
 
 typedef enum BUTTON_enum
@@ -246,7 +248,7 @@ int main(void)
              }
              else
              {
-                 eraseWriteState = IDLE;
+                 eraseWriteState = ASM_RWW_ERASE;
                  TCB0.CTRLA &= ~TCB_ENABLE_bm; /* Stop Timer */
 
                  // reset buffer
@@ -254,6 +256,55 @@ int main(void)
              }
 
             break;
+            
+        case ASM_RWW_ERASE:
+        {
+            //// Set the mapped program space to the 1st section (32k - 64k)
+            //_PROTECTED_WRITE(NVMCTRL.CTRLB, NVMCTRL_FLMAP_SECTION0_gc);
+            
+            SCOPE_PORT.OUTSET = SCOPE_FLPER_bm;
+            
+            rwwFlashPointer++;
+
+            _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_NOCMD_gc);
+        
+            // Perform a dummy write to this address to update the address register in NVMCTL
+            *rwwFlashPointer = 0;
+
+            _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_FLPER_gc);
+        
+            while (NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm)
+            {
+                ; // wait for flash erase to complete
+            }
+            SCOPE_PORT.OUTCLR = SCOPE_FLPER_bm;
+            
+            // Write
+            _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_NOCMD_gc);
+            
+            // Fill "page" buffer
+            //SCOPE_PORT.OUTSET = SCOPE_BUFFER_bm;
+            //for (uint8_t i = 0; i < PROGMEM_PAGE_SIZE; i++)
+            //{
+                //*rwwFlashPointer++ = buffer[readIndex++];
+            //}
+            //SCOPE_PORT.OUTCLR = SCOPE_BUFFER_bm;
+
+            SCOPE_PORT.OUTSET = SCOPE_FLPW_bm;
+            
+            pgm_word_write((0xFF80 & 0xFFFFFE), 0xDEAD);
+            
+            // Write the flash page
+            _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_FLPW_gc);
+            while (NVMCTRL.STATUS & NVMCTRL_FLBUSY_bm)
+            {
+                ; // wait flash write page operation to complete
+            }
+            SCOPE_PORT.OUTCLR = SCOPE_FLPW_bm;
+
+            eraseWriteState = IDLE;
+            break;
+        }            
         case IDLE:
         {
             if (PRESS == buttonState)
