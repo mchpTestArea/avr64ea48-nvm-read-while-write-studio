@@ -199,5 +199,10 @@ Upon the press of the button operation of the firmware is as follows
 
 
 Note: 
-* for the CPU not block, while the write operation on RWW program memory is in progress, the code that the CPU reads, needs to be located in the NRWW area. This applies for the interrupt code as well. Interrupt code located in the RWW section may halt the CPU if the associated interrupt is triggered while the
-RWW section is erased or written.
+* Interrupt code located in the RWW section may halt the CPU if the associated interrupt is triggered while the RWW section is erased or written. In different words, for the CPU not block, while the write operation on RWW program memory is in progress, the code that the CPU reads, needs to be located in the NRWW area. 
+Moving the interrupt vector table
+
+### Moving the Interup Vector Table
+Note that after reset, the default vector table location is after the BOOT section, as long as the BOOT fuse is different than 0. The peripheral interrupts can be used in the code running in the BOOT section by relocating the interrupt vector table at the beginning of this section. That is done by setting the IVSEL bit in the CPUINT.CTRLA register. Refer to the CPUINT section for details. If no interrupt source is used, then there is no need to change this value. 
+
+Functions or interrupts placed in the NRWW can run while an operation on the RWW section is ongoing. However steps should be taken to ensure there are no interrupts or jumps to code located inside the RWW. This may lead to the software end up in a unknown state or the CPU blocking, waiting for the erase/write operation to complete. Hence the benefits of the NRWW/RWW split are forfeit, at best.
