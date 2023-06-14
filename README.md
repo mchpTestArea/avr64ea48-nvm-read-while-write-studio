@@ -24,6 +24,8 @@
 
 - Microchip Studio for AVR® and SAM Devices 7.0.132 or newer [(Microchip Studio for AVR® and SAM Devices 7.0.132)](https://www.microchip.com/en-us/development-tools-tools-and-software/microchip-studio-for-avr-and-sam-devices?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-studio-github)
 - AVR® GCC 5.4.0 or newer compiler [(AVR® GCC 5.4)](https://www.microchip.com/en-us/development-tools-tools-and-software/gcc-compilers-avr-and-arm?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-studio-github)
+- Python MCU programmer [(pymcuprog)](https://pypi.org/project/pymcuprog/)
+
 
 ## Hardware Used
 
@@ -31,6 +33,7 @@
      - PIC18F47Q10 Curiosity Nano [(DM182029)](https://www.microchip.com/Developmenttools/ProductDetails/DM182029)
      - Curiosity Nano Base for Click boards™ [(AC164162)](https://www.microchip.com/Developmenttools/ProductDetails/AC164162)
      - POT Click board™ [(MIKROE-3402)](https://www.mikroe.com/pot-click) -->
+- AVR64EA48 Curiosity Nano [(EV66E56A)](https://www.microchip.com/en-us/development-tool/EV66E56A)
 
 ## Setup
 
