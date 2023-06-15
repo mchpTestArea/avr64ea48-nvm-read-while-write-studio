@@ -29,7 +29,7 @@
 // the .rww_data section is at address 0x2000 (word address 0x1000)
 #define RWW_DATA_SECTION __attribute__((used, section(".rww_data")))
 
-// the .rww_data section is at address 0x1F00 (word address 0x0F80)
+// the .nrww_data section is at address 0x1F00 (word address 0x0F80)
 #define NRWW_DATA_SECTION __attribute__((used, section(".nrww_data")))
 
 // the .nrww_program section is at address 0x0400 (word address 0x0200)
@@ -76,7 +76,7 @@ BUTTON_t buttonState = UNKNOWN; // Cleaned-up version of the SW0 button input si
 
 // TCB1 is set to interrupt with the SAMPLE_FREQUENCY rate.
 // Within the interrupt SW0 logic level is sampled.
-// A local variable is incremented or decremented according based on the SW0 state.
+// A local variable is incremented or decremented according to the SW0 state.
 // The SW0 signal must be in a logical state (0 or 1) for the specified
 // DEBOUNCE_TIME in order for the output to change to that state.
 // DEBOUNCE_TIME is in seconds and SAMPLE_FREQUENCY is in Hertz
@@ -87,6 +87,8 @@ BUTTON_t buttonState = UNKNOWN; // Cleaned-up version of the SW0 button input si
 void SystemInitialize(void);
 void ProgramingFlash(void);
 void ReadWhileWriting(void);
+
+NRWW_PROG_SECTION void FillBuffer(void);
 
 int main(void)
 {
@@ -137,7 +139,7 @@ int main(void)
                 nrwwFlashPointer = nrwwFlashPointer + PROGMEM_PAGE_SIZE;
             }
 
-            // Set rwwFlashPointer address to RWW data space
+            // Set nrwwFlashPointer address to NRWW data space
             nrwwFlashPointer = (uint8_t *)((((uint16_t) &nrww_array) & 0x7FFF) + MAPPED_PROGMEM_START);
 
             // set state machine to Write to the RWW data space
@@ -321,7 +323,7 @@ void SystemInitialize(void)
     data = data << 2;
 }
 
-void NRWW_PROG_SECTION FillBuffer(void)
+NRWW_PROG_SECTION void FillBuffer(void) 
 {
     // Fill the buffer with some data
     SCOPE_PORT.OUTTGL = SCOPE_ISR_bm;
