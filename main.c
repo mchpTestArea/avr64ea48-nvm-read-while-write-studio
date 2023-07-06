@@ -259,9 +259,6 @@ int main(void)
             
         case ASM_RWW_ERASE:
         {
-            //// Set the mapped program space to the 1st section (32k - 64k)
-            //_PROTECTED_WRITE(NVMCTRL.CTRLB, NVMCTRL_FLMAP_SECTION0_gc);
-            
             SCOPE_PORT.OUTSET = SCOPE_FLPER_bm;
             
             rwwFlashPointer++;
@@ -282,14 +279,6 @@ int main(void)
             // Write
             _PROTECTED_WRITE_SPM(NVMCTRL.CTRLA, NVMCTRL_CMD_NOCMD_gc);
             
-            // Fill "page" buffer
-            //SCOPE_PORT.OUTSET = SCOPE_BUFFER_bm;
-            //for (uint8_t i = 0; i < PROGMEM_PAGE_SIZE; i++)
-            //{
-                //*rwwFlashPointer++ = buffer[readIndex++];
-            //}
-            //SCOPE_PORT.OUTCLR = SCOPE_BUFFER_bm;
-
             SCOPE_PORT.OUTSET = SCOPE_FLPW_bm;
             
             pgm_word_write((0xFF80 & 0xFFFFFE), 0xDEAD);
