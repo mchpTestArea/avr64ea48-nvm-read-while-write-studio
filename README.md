@@ -22,8 +22,8 @@
      - MPLAB® Code Configurator (MCC) Device Libraries PIC10 / PIC12 / PIC16 / PIC18 MCUs [(microchip.com/mplab/mplab-code-configurator)](https://www.microchip.com/mplab/mplab-code-configurator)
      - Microchip PIC18F-Q Series Device Support (1.4.109) or newer [(packs.download.microchip.com/)](https://packs.download.microchip.com/) -->
 
-- Microchip Studio for AVR® and SAM Devices 7.0.132 or newer [(Microchip Studio for AVR® and SAM Devices 7.0.132)](https://www.microchip.com/en-us/development-tools-tools-and-software/microchip-studio-for-avr-and-sam-devices?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-studio-github)
-- AVR® GCC 5.4.0 or newer compiler [(AVR® GCC 5.4)](https://www.microchip.com/en-us/development-tools-tools-and-software/gcc-compilers-avr-and-arm?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-studio-github)
+- MPLAB® X IDE 6.0.0 or newer [(MPLAB® X IDE 6.0)](https://www.microchip.com/en-us/development-tools-tools-and-software/mplab-x-ide?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-mplab-mcc-github)
+- MPLAB® XC8 2.40.0 or newer compiler [(MPLAB® XC8 2.40)](https://www.microchip.com/en-us/development-tools-tools-and-software/mplab-xc-compilers?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-mplab-mcc-github)
 - Python MCU programmer [(pymcuprog)](https://pypi.org/project/pymcuprog/)
 
 
@@ -51,11 +51,17 @@ Independent of page size, the device program memory is split into two physical s
 * Non Read-While-Write (NRWW) and
 * Read-While-Write (RWW)  
 
+<div style="width:50%; margin: auto;">
+
 ![Memory Map](images/AVR-EA%20Memory%20Map.jpg)
+</div>
 
 The sizes for NRWW and RWW are available in the Memory Overview table in the part datasheet.
 
+<div style="width:50%; margin: auto;">
+
 ![Memory Size Overview](images/AVR-EA%20Memory%20Size%20Overview.jpg)
+</div>
 
 The logical BOOT section size can overlap all or part of the NRWW section, as shown above. 
 
@@ -197,10 +203,11 @@ Upon the press of the button operation of the firmware is as follows
     * 2 flash pages are written to in the area: 0x2000 - 0x20FF
 * FW resumes IDLE state, waiting for a button press that will repeat the operation above
 
+<div style="width:50%; margin: auto;">
 
 ![Scope Capture](images/AVR-EA%20Scope%20Capture.jpg)
 
-
+</div>
 Note: 
 * Interrupt code located in the RWW section may halt the CPU if the associated interrupt is triggered while the RWW section is erased or written. In different words, for the CPU not block, while the write operation on RWW program memory is in progress, the code that the CPU reads, needs to be located in the NRWW area. 
 Moving the interrupt vector table
@@ -209,3 +216,39 @@ Moving the interrupt vector table
 Note that after reset, the default vector table location is after the BOOT section, as long as the BOOT fuse is different than 0. The peripheral interrupts can be used in the code running in the BOOT section by relocating the interrupt vector table at the beginning of this section. That is done by setting the IVSEL bit in the CPUINT.CTRLA register. Refer to the CPUINT section for details. If no interrupt source is used, then there is no need to change this value. 
 
 Functions or interrupts placed in the NRWW can run while an operation on the RWW section is ongoing. However steps should be taken to ensure there are no interrupts or jumps to code located inside the RWW. This may lead to the software end up in a unknown state or the CPU blocking, waiting for the erase/write operation to complete. Hence the benefits of the NRWW/RWW split are forfeit, at best.
+
+### Project Properties
+
+#### XC8 Global Options
+
+<div style="width:50%; margin: auto;">
+
+![Alt text](<images/Project Properties Global Options.jpg>)
+</div>
+#### XC8 Global Options
+
+> -Wl,--section-start=.nrww=0x0200,--section-start=.nrww_data=0x1F00,--section-start=.rww_data=0x2000
+
+<div style="width:50%; margin: auto;">
+
+![Alt text](<images/Project Properties Linker Options.jpg>)
+</div>
+
+<img src="images/Project Properties Linker Options.jpg" width = "50%" height = "50%" title= "Linker Options"/>
+
+
+The settings are instructing the linker that at:
+
+0x0200 - section ".nrww" starts
+0x1F00 - section ".nrww_data" starts
+0x2000 - section ".rww_data" starts
+
+Note: 
+* If changing the location and sized of the above memory areas, at build time, linker errors might occur. One is advised to throroughly checkt the length of each areas. For example, the linker error below occurs when, erroneously, the ".rww_data" overlapps the ".nrww_data".
+
+> Link Error: Could not allocate section '.rww_data' at 0x1f80
+Link Error: Could not allocate program memory
+collect2.exe: error: ld returned 1 exit status
+make[2]: *** [dist/free/production/avr64ea48-nvm-read-while-write-mplab-mcc.X.production.hex] Error 1
+make[1]: *** [.build-conf] Error 2
+make: *** [.build-impl] Error 2
