@@ -374,7 +374,7 @@ void SystemInitialize(void)
     data = data << 2;
 }
 
-NRWW_PROG_SECTION void FillBuffer(void) 
+NRWW_PROG_SECTION void FillBuffer(void)
 {
     // Fill the buffer with some data
     SCOPE_PORT.OUTTGL = SCOPE_ISR_bm;
