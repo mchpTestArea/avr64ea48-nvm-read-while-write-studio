@@ -1,81 +1,87 @@
-<!-- Please do not change this logo with link -->
-
 [![MCHP](images/microchip.png)](https://www.microchip.com)
 
-# Update the title for avr64ea48-nvm-read-while-write-studio here
+# Servicing Peripheral Interrupts While Writing Flash
 
-<!-- This is where the introduction to the example goes, including mentioning the peripherals used -->
+This example shows how to use the Read-While-Write (RWW) feature on supported AVR® devices. It will demonstrate how the CPU halts when writing without the RWW and how it runs using the RWW. In this example, all code is bare-metal and written for Microchip Studio®.
+
+The Microchip AVR® EA Family of microcontrollers features Flash memory where the Flash divides in two sections: the Read-While-Write (RWW) section and Non Read-While-Write (NRWW). This enables the CPU to continue running instructions in the NRWW section while a Flash write is executed on the RWW section.
+
+<p><img src="images/AVR-EA_Memory_Map.jpg" width="300"/></p>
+
+The Memory Overview table in the part datasheet shows the available sizes for NRWW and RWW. The logical BOOT section size can overlap a part of the NRWW section or all of it, as shown below.
+
+<p><img src="images/AVR-EA_Memory_Size_Overview.jpg" width="500"/></p>
+
+The Flash memory read/write routines are placed in the NRWW section using an application. This allows the CPU to run while such procedures are in progress. The application has several use cases, such as:
+1. A Bootloader scenario, where CPU is servicing commands from communication peripheral (I2C/USART) to the Host programmer and simultaneously programming the RWW sections containing application Code/Data.
+2. A data logging scenario, where an analog peripheral interrupts regularly with a stream of data that needs to be stored to program memory without halting the CPU.
+   
+In both use cases, the CPU must not be halted while the NVMCTRL peripheral performs the operation on program memory.
 
 ## Related Documentation
-
-<!-- Any information about an application note or tech brief can be linked here. Use unbreakable links!
-     In addition a link to the device family landing page and relevant peripheral pages as well:
-     - [AN3381 - Brushless DC Fan Speed Control Using Temperature Input and Tachometer Feedback](https://microchip.com/00003381/)
-     - [PIC18F-Q10 Family Product Page](https://www.microchip.com/design-centers/8-bit/pic-mcus/device-selection/pic18f-q10-product-family) -->
-
 ## Software Used
-
-<!-- All software used in this example must be listed here. Use unbreakable links!
-     - MPLAB® X IDE 5.30 or newer [(microchip.com/mplab/mplab-x-ide)](http://www.microchip.com/mplab/mplab-x-ide)
-     - MPLAB® XC8 2.10 or a newer compiler [(microchip.com/mplab/compilers)](http://www.microchip.com/mplab/compilers)
-     - MPLAB® Code Configurator (MCC) 3.95.0 or newer [(microchip.com/mplab/mplab-code-configurator)](https://www.microchip.com/mplab/mplab-code-configurator)
-     - MPLAB® Code Configurator (MCC) Device Libraries PIC10 / PIC12 / PIC16 / PIC18 MCUs [(microchip.com/mplab/mplab-code-configurator)](https://www.microchip.com/mplab/mplab-code-configurator)
-     - Microchip PIC18F-Q Series Device Support (1.4.109) or newer [(packs.download.microchip.com/)](https://packs.download.microchip.com/) -->
-
-- MPLAB® X IDE 6.0.0 or newer [(MPLAB® X IDE 6.0)](https://www.microchip.com/en-us/development-tools-tools-and-software/mplab-x-ide?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-mplab-mcc-github)
-- MPLAB® XC8 2.40.0 or newer compiler [(MPLAB® XC8 2.40)](https://www.microchip.com/en-us/development-tools-tools-and-software/mplab-xc-compilers?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-mplab-mcc-github)
-- Python MCU programmer [(pymcuprog)](https://pypi.org/project/pymcuprog/)
+- [Microchip Studio 7.0.2594](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-studio-github) or newer
+- [GCC compiler](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio/gcc-compilers?utm_source=GitHub&utm_medium=TextLink&utm_campaign=MCU8_MMTCha_MPAE_Examples&utm_content=avr64ea48-nvm-read-while-write-studio-github)
+- [Python MCU programmer - pymcuprog](https://pypi.org/project/pymcuprog/)
 
 
 ## Hardware Used
-
-<!-- All hardware used in this example must be listed here. Use unbreakable links!
-     - PIC18F47Q10 Curiosity Nano [(DM182029)](https://www.microchip.com/Developmenttools/ProductDetails/DM182029)
-     - Curiosity Nano Base for Click boards™ [(AC164162)](https://www.microchip.com/Developmenttools/ProductDetails/AC164162)
-     - POT Click board™ [(MIKROE-3402)](https://www.mikroe.com/pot-click) -->
-- AVR64EA48 Curiosity Nano [(EV66E56A)](https://www.microchip.com/en-us/development-tool/EV66E56A)
+- [AVR64EA48 Curiosity Nano](https://www.microchip.com/en-us/development-tool/EV66E56A)
+- Logic analyzer or oscilloscope
 
 ## Setup
 
-<!-- Explain how to connect hardware and set up software. Depending on complexity, step-by-step instructions and/or tables and/or images can be used -->
+### Project setup 
+> Note: \
+Interrupt code located in the RWW section may halt the CPU if the associated interrupt is triggered while the RWW section is erased or written. For the CPU to not block while the write operation on RWW program memory is in progress, the code that the CPU reads needs to be located in the NRWW area. 
+
+### Moving the Interup Vector Table
+If it is configured to exist, the default settings places the interrupt vectors at the start of the APPCODE section. Therefor, the interrupts will not run if the Flash controller writes to that Flash section, even if the NRWW section overlaps a part of the APPCODE section. To ensure that uninterrupted interrupt handling can take place, the interrupt vector can be placed in the start of the BOOT section. This is done by setting the IVSEL bit in the CPUINT.CTRLA register. Refer to the CPUINT section for details. If no interrupt source is used, then there is no need to change this value.
+
+Note that when the APPCODE and APPDATA section are configured, the only prerequisite for uninterrupted interrupt handling while Flash writes to the APPDATA section is that the interrupt vector is in the NRWW section.
+
+Functions or interrupts placed in the NRWW section can run while an operation on the RWW section is ongoing. Steps must be taken to prevent the interrupts or jumps for the code inside the RWW section. Hence, the benefits of the NRWW/RWW split are forfeit.
+
+### Project Properties
+
+#### Studio Linker settings
+To enable code placement in desired memory sections, the following values need to be added to the Linker Memory Settings in the Toolchain.
+
+>.nrww_program = 0x100\
+>.nrww_data = 0x0F80\
+>.rww_data = 0x1000
+
+<p><img src="images/Studio_Linker_Memory_Settings.png" width="600"/></p>
+
+To run this example a linker script is included in the project, this is then included in the Linker Miscellaneous settings in the Toolchain.
+
+<p><img src="images/Studio_Linker_Misc_Settings.png" width="600"/></p>
+
+> Note:\
+If changing the location and sized of the above memory areas, at build time, linker errors might occur. One is advised to thoroughly check the length of each areas. For example, the linker error below occurs when, erroneously, the ".rww_data" overlaps the ".nrww_data".
+
+> Link Error: Could not allocate section '.rww_data' at 0x1f80
+Link Error: Could not allocate program memory
+collect2.exe: error: ld returned 1 exit status
+make[2]: *** [dist/free/production/avr64ea48-nvm-read-while-write-mplab-mcc.X.production.hex] Error 1
+make[1]: *** [.build-conf] Error 2
+make: *** [.build-impl] Error 2
+
+### Physical setup
+The example can run without using external tools but is configured to allow for such tools if preferred and to allow viewing the RWW in progress. This is done by setting I/O pins to toggle on important points in code. The four events are, with attached pins:
+* TCB0 interrupt trigger (PA2)
+* Filling of the buffer (PA3)
+* Flash page erase (PA4)
+* Flash page write (PA5)
+
+The execution of the TCB0 interrupt routine shows that the CPU still runs while a write operation is preformed on the RRW section.
 
 ## Operation
-
-<!-- Explain how to operate the example. Depending on complexity, step-by-step instructions and/or tables and/or images can be used -->
-
-## Summary
-
-<!-- Summarize what the example has shown -->
-
-Independent of page size, the device program memory is split into two physical sections:
-* Non Read-While-Write (NRWW) and
-* Read-While-Write (RWW)  
-
-<div style="width:50%; margin: auto;">
-
-![Memory Map](images/AVR-EA%20Memory%20Map.jpg)
-</div>
-
-The sizes for NRWW and RWW are available in the Memory Overview table in the part datasheet.
-
-<div style="width:50%; margin: auto;">
-
-![Memory Size Overview](images/AVR-EA%20Memory%20Size%20Overview.jpg)
-</div>
-
-The logical BOOT section size can overlap all or part of the NRWW section, as shown above. 
-
-An application, configured such that the routines for reading from and writing to the program memory are placed in the NRWW section, allows for the CPU to not be blocked while such procedures are in progress. 
-
-A use case is a Bootloader scenario, where CPU is servicing commands from communication peripheral (I2C/USART) to the Host programmer, and simultaneously programming the RWW section, containing App Code/Data. Another use case could be a data logging scenario in which an analog peripheral interrupts regularly with a stream of data, which simultaneously needs to be stored to program memory. In both scenarios it is important that the CPU is not blocked while the NVMCTRL peripheral performs the operation on program memory.
-
-The current application will show the benefits of having the program memory split into NRWW/RWW. The user will be able to compare these benefits against the standard way AVR 8 bit microcontrollers operate, that do not have this section split. 
-
-Upon building the project and programming the executable file to the AVR-EA device pymcuprog is used to read the contents of the program memory where data is going to be written to. 
+After building the project and programming the AVR® EA device, pymcuprog is used to read the contents of the program memory where data is written. 
 
 > pymcuprog read -m flash -o 0x1f00 -b512
 
-Expected result is as follows:
+Expected results:
 
 <pre>
 Reading...
@@ -120,9 +126,9 @@ Memory type: flash
 
 </pre>
 
-The user is invited to press the button SW0. To confirm the press the LED0 will be lit as long as the button will be pressed. A button press will trigger the generation of data and commiting it to program memory. 
+Pressing the button (SW0) triggers the generation of data which is then committed to program memory. The LED (LED0) will light up to confirm the button press.
 
-Once again the user is invited to read the prorgam memory with the same command as above.
+Reading the program memory using the method above will give the following results:
 
 <pre>
 Reading...
@@ -168,87 +174,60 @@ Memory type: flash
 
 Data is available in the program memory. 
 
-The user is invited to probe the follwing pins, in order to notice the benefits of NRWW/RWW operation:
-* PA2 - line toggled every time the TCB0 interrupt is serviced 
-* PA3 - indicates a fill buffer operation (prior to writing to program memory)
-  * HIGH - buffer loading in progress
-  * LOW - finished (or no) buffer loading
-* PA4 - indicates a flash page erase operation
-  * HIGH - page erase in progress
-  * LOW - page erase finished (or no) erase operation
-* PA5 - indicates a flash page write operation
-  * HIGH - page write in progress
-  * LOW - page write finished (or no) write operation
+Data is available in the program memory. 
 
-Upon the press of the button operation of the firmware is as follows
-* initialise a write to NRWW program memory area
-  * enable TCB0 - simulates data aquisition 
-* erase the NRWW program memory area where data will be later saved
-  * one can observe the 2 HIGH periods in the FLPER channel. 
-  * during both these periods the PA2 is not toggling, which means that the TCB0 interrupt is not triggered, as the CPU is held, while the NVMCTRL(er) erases the program memory
-  * 2 flash pages are erased to in the area: 0x1F00 - 0x1FFF
-* write (aquired) data to the NRWW program memory area 
-  * PA3 high once enough data to fill a page has been aquired; data copied into the buffer
-  * PA5 high once as soon as the write operation starts.
-    * during this periods the PA2 is not toggling, which means that the TCB0 interrupt is not triggered, as the CPU is held, while the NVMCTRL(er) writes the program memory page
-    * 2 flash pages are written to in the area: 0x1F00 - 0x1FFF
-* erase the RWW program memory area where data will be later saved
-  * one can observe the 2 HIGH periods in the FLPER channel. 
-  * during both these periods the PA2 is toggling, which means that the TCB0 interrupt is triggered, and the CPU is servicing the interrupt, while, in parallel, the NVMCTRL(er) erases the program memory
-  * 2 flash pages are erased in the area: 0x2000 - 0x20FF
-* write (aquired) data to the RWW program memory area 
-  * PA3 high once enough data to fill a page has been aquired; data copied into the buffer
-  * PA5 high once as soon as the write operation starts.
-    * during this periods the PA2 is toggling, which means that the TCB0 interrupt is triggered, as the CPU is held, while the NVMCTRL(er) writes the program memory page
-    * 2 flash pages are written to in the area: 0x2000 - 0x20FF
-* FW resumes IDLE state, waiting for a button press that will repeat the operation above
+By adding probes to the pins defined in the setup, the operation of the program, and benefits of the RWW/NRWW implementation, can be viewed:
+* **PA2** - Pin toggled every time the TCB0 interrupt is serviced 
+* **PA3** - Indicates if a fill buffer operation is underway
+  * HIGH - Buffer loading in progress
+  * LOW - Finished (or no) buffer loading
+* **PA4** - Indicates if a Flash page erase operation is underway
+  * HIGH - Flash age erase in progress
+  * LOW - No Flash erase in progress
+* **PA5** - Indicates if a Flash page write operation is underway
+  * HIGH - Flash page write in progress
+  * LOW - No Flash write in progress 
 
-<div style="width:50%; margin: auto;">
+Pressing the button initiates a state machine in the program. The program flow is as follows:
+* **IDLE:** Waits for button press.
+* **INIT_NRWW:** Initializes a write to NRWW program memory area.
+  * Enables TCB0 - Timer TCB0 is configured to generate an interrupt every 156 μs. 
+    * This is to demonstrate the use case of data acquisition where interrupts can be encountered periodically. 
+  * One toggle indicates one data acquisition that would in a real application fill an SRAM buffer.
+* **ERASE_NRWW:** Erases a section of NRWW program memory to prepare for write operation.
+  * 2 HIGH periods in the FLPER channel are observed.
+  * During both these periods the PA2 is HIGH and not toggling. 
+    * This indicates that the TCB0 interrupt is not triggering, and that the CPU is stalled while NVM-controller erases the program memory.
+  * 2 Flash pages are erased at the Flash address span: 0x1F00 to 0x1FFF.
+* **WRITE_NRWW:** Writes the acquired data to the NRWW program memory area.
+  * PA3 goes HIGH when enough data to fill a page has been acquired; data copied into the buffer.
+  * PA5 high as soon as the write operation starts.
+  * During the write operation, PA2 is HIGH and not toggling. 
+    * This indicates that the TCB0 interrupt is not triggering, and that the CPU is stalled while NVM-controller writes the program memory page.
+  * 2 Flash pages are written to the Flash address span: 0x1F00 to 0x1FFF.
+* **INIT_RWW:** Initializes a write to RWW program memory area.
+  * Enables TCB0 - Timer TCB0 is configured to generate an interrupt every 156 μs. 
+    * This is to demonstrate the use case of data acquisition where interrupts can be encountered periodically. 
+  * One toggle indicates one data acquisition that would in a real application fill an SRAM buffer.
+* **ERASE_RWW:** Erases the RWW program memory area where data will be later saved.
+  * 2 HIGH periods in the FLPER channel are observed.
+  * During both these periods the PA2 is toggling. 
+    * This indicates that the TCB0 interrupt is triggered, and that the CPU is servicing the interrupt. 
+    * In parallel, the NVM-controller erases the program memory.
+  * 2 Flash pages are erased at the Flash address span: 0x2000 to 0x20FF.
+* **WRITE_RWW:** Writes the acquired data to the RWW program memory area.
+  * PA3 goes high when enough data to fill a page has been acquired; data copied into the buffer.
+  * PA5 goes high when write operation starts.
+  * During the write operation, PA2 is toggling. 
+    * This indicates that the TCB0 interrupt is triggered, and that the CPU is running while the NVM-controller writes the program memory page.
+  * 2 Flash pages are written to the Flash address span: 0x2000 - 0x20FF.
+* **IDLE:** State machine resumes IDLE state, waits for a button press that will repeat the operation above.
 
-![Scope Capture](images/AVR-EA%20Scope%20Capture.jpg)
+The flow with pin toggling can be seen below: 
 
-</div>
-Note: 
-* Interrupt code located in the RWW section may halt the CPU if the associated interrupt is triggered while the RWW section is erased or written. In different words, for the CPU not block, while the write operation on RWW program memory is in progress, the code that the CPU reads, needs to be located in the NRWW area. 
-Moving the interrupt vector table
+<p><img src="images/AVR-EA_Scope_Capture.jpg" width="900"/>
 
-### Moving the Interup Vector Table
-Note that after reset, the default vector table location is after the BOOT section, as long as the BOOT fuse is different than 0. The peripheral interrupts can be used in the code running in the BOOT section by relocating the interrupt vector table at the beginning of this section. That is done by setting the IVSEL bit in the CPUINT.CTRLA register. Refer to the CPUINT section for details. If no interrupt source is used, then there is no need to change this value. 
-
-Functions or interrupts placed in the NRWW can run while an operation on the RWW section is ongoing. However steps should be taken to ensure there are no interrupts or jumps to code located inside the RWW. This may lead to the software end up in a unknown state or the CPU blocking, waiting for the erase/write operation to complete. Hence the benefits of the NRWW/RWW split are forfeit, at best.
-
-### Project Properties
-
-#### XC8 Global Options
-
-<div style="width:50%; margin: auto;">
-
-![Alt text](<images/Project Properties Global Options.jpg>)
-</div>
-#### XC8 Global Options
-
-> -Wl,--section-start=.nrww=0x0200,--section-start=.nrww_data=0x1F00,--section-start=.rww_data=0x2000
-
-<div style="width:50%; margin: auto;">
-
-![Alt text](<images/Project Properties Linker Options.jpg>)
-</div>
-
-<img src="images/Project Properties Linker Options.jpg" width = "50%" height = "50%" title= "Linker Options"/>
-
-
-The settings are instructing the linker that at:
-
-0x0200 - section ".nrww" starts
-0x1F00 - section ".nrww_data" starts
-0x2000 - section ".rww_data" starts
-
-Note: 
-* If changing the location and sized of the above memory areas, at build time, linker errors might occur. One is advised to throroughly checkt the length of each areas. For example, the linker error below occurs when, erroneously, the ".rww_data" overlapps the ".nrww_data".
-
-> Link Error: Could not allocate section '.rww_data' at 0x1f80
-Link Error: Could not allocate program memory
-collect2.exe: error: ld returned 1 exit status
-make[2]: *** [dist/free/production/avr64ea48-nvm-read-while-write-mplab-mcc.X.production.hex] Error 1
-make[1]: *** [.build-conf] Error 2
-make: *** [.build-impl] Error 2
+## Summary
+By completing this example, the user will:
+1. Be shown the benefits of having the program memory split into two, NRWW and RWW sections.
+2. Be able to compare these benefits against the standard way AVR 8-bit microcontrollers operates.
