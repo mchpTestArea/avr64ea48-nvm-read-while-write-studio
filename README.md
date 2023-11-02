@@ -2,7 +2,7 @@
 
 # Servicing Peripheral Interrupts While Writing Flash
 
-This example shows how to use the Read-While-Write (RWW) feature on supported AVR® devices. It will demonstrate how the CPU halts when writing without the RWW and how it runs using the RWW. In this example, all code is bare-metal and written for Microchip Studio®.
+This example shows how to use the Read-While-Write (RWW) feature on supported AVR® devices as described in the [TB TB3344 - Servicing Peripheral Interrupts While Writing to Flash](https://microchip.com/DS90003344) document from Microchip. It will demonstrate how the CPU halts when writing without the RWW and how it runs using the RWW. In this example, all code is bare-metal and written for Microchip Studio®.
 
 The Microchip AVR® EA Family of microcontrollers features Flash memory where the Flash divides in two sections: the Read-While-Write (RWW) section and Non Read-While-Write (NRWW). This enables the CPU to continue running instructions in the NRWW section while a Flash write is executed on the RWW section.
 
